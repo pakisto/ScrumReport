@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html>
+<head>
+<!-- Le styles -->
+<link href="./css/bootstrap.css" rel="stylesheet">
+<link href="./css/font-awesome.css" rel="stylesheet">
+<style>
+body {
+    padding-top: 20px;  
+    /* 60px to make the container go all the way to the bottom of the topbar */
+}
+table {
+    font-size: 12px
+}
+.text-right {text-alian: right !important;}
+</style>
+<link href="./css/bootstrap-responsive.css" rel="stylesheet">
+
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+<script>
+
+
+$(document).ready(function(){
+	$("#closeSummary").click(function(){
+		$("#block1").toggle();
+	});
+	$("#closeAssignees").click(function(){
+		$("#block2").toggle();
+	});
+	$("#closeIssues").click(function(){
+		$("#block3").toggle();
+	});
+	$("#assigneeFilter").click(function(){
+		var assignName = $("#assigneeName").val();
+		
+		console.log(">" + assignName + "(" +  typeof(assignName) + ")");
+		
+		if ("" == assignName) {
+			$("#block3 tbody tr").show();
+			return;
+		}
+
+        $("#block3 tbody tr").each(function() {
+        	var c1 = $(this).children("th").eq(2).text();
+        	var c2 = $(this).children("th").eq(3).text();
+        	var c3 = $(this).children("th").eq(4).text();
+        	
+        	var name = "" + c1 + c2 + c3;
+        	
+        	console.log(">>" + name + "(" +  typeof(name) + ")");
+        	
+        	if (name == assignName) {
+        		$(this).show();
+        		var parentKey = $(this).attr("data-parent-id");
+        		var parentSelector = "#" + parentKey;
+        		console.log(">>>" + parentKey + "(" +  typeof(parentKey) + ")");
+        		if (parentKey != null) {
+        			$(parentSelector).show();
+        		}
+        	} else {
+        		$(this).hide();
+        	}
+        });
+    });
+    $("#search").click(function(){
+    	 
+    	var domain = "http://jira.ktcloudware.com";
+    	var queryUri = "/rest/api/latest/search?jql=";
+    	var issueUri = "/browse";
+    	var projectName = "IPC Management System Project";
+    	var sprintName = $("#sprintName").val();
+    	var assigneeName = $("#assigneeName").val();
+    	 
+        $.ajax({
+    	   type: 'GET',
+    	   url: domain + queryUri + 'Project="' + projectName + '" and Sprint="' + sprintName + '"&maxResults=300',
+    	   //url: 'http://jira.ktcloudware.com/rest/api/latest/search?jql=IssueKey="IPCPORTAL-29"&maxResults=300',
+    	   //url: 'http://jira.ktcloudware.com/rest/greenhopper/1.0/xboard/plan/backlog/data.json?rapidViewId=37',
+    	   beforeSend: function(xhr) {
+    		   xhr.setRequestHeader('Authorization', 'Basic c2VvbmNoZzpub3R6ZW5nMQ==');
+    	   },
+    	   success: function(data) {
+    		   
+    		   var issues = data.issues;
+    		   issues.sort(compareIssue);
+    		   
+    		   var stat = new statistic();
+    		   var assigneeStats = {};
+    		   var issueElements = "";
+    		   
+    		   for (var i = 0; i < issues.length; i++) {
+    			   var issue =  issues[i].fields;
+    			   var issueParentKey = "";
+    			   if (isDefined(issue.parent)) {
+    				   issueParentKey = issue.parent.key;
+    			   }
+    			   var summary = new issueSummary(
+    					   issues[i].key,
+    					   issueParentKey,
+    					   domain + issueUri + "/" + issues[i].key, 
+    					   issue.summary,
+    					   issue.issuetype.name,
+    					   issue.status.name,
+    					   issue.customfield_11007,
+    					   issue.timeoriginalestimate,
+    					   issue.aggregatetimespent,
+    					   issue.assignee,
+    					   issue.labels)
+    			   
+    			   if (isDefined(summary.assignee)) {
+    				   var assignStat = assigneeStats[summary.assignee];
+    				   if (assignStat == null) {
+    					   assignStat = {assignee:summary.assignee, stat:new statistic()};
+    				   }
+    				   assignStat.stat.addIssueCount(summary);
+    				   assignStat.stat.addStoryPoint(summary);
+    				   assignStat.stat.addTimeAttr(summary);
+    				   assignStat.stat.addBugType(summary);
+    				   
+    				   assigneeStats[summary.assignee] = assignStat;
+    			   }
+    			   
+    			   stat.addIssueCount(summary);
+    			   stat.addStoryPoint(summary);
+    			   stat.addBugType(summary);
+    			   
+    			   if (typeof(assigneeName) != "undefined" && assigneeName != null && assigneeName != "") {
+    				   if (assigneeName != summary.assignee) {
+    					   continue;
+    				   }
+    			   }
+    			   
+    			   issueElements += getIssuesTableRow(summary); 
+    		   }
+    		   
+    		   $("#issueCountTotal").text(stat.count.total);
+    		   $("#issueCountSprint").text(stat.count.sprint + "(" + (stat.count.sprint/stat.count.total*100).toFixed(2) + "%)");
+    		   $("#issueCountOpen").text(stat.count.open);
+    		   $("#issueCountInProgress").text(stat.count.inProgress);
+    		   $("#issueCountResolved").text(stat.count.resolved);
+    		   $("#issueCountBug").text(stat.count.bug + "(" + (stat.count.bug/stat.count.total*100).toFixed(2) + "%)");
+    		   $("#issueCountOperating").text(stat.count.operating + "(" + (stat.count.operating/stat.count.total*100).toFixed(2) + "%)");
+    		   $("#issueCountTriage").text(stat.count.triage + "(" + (stat.count.triage/stat.count.total*100).toFixed(2) + "%)");
+    		   
+    		   $("#storyPointTotal").text(stat.storyPoint.total);
+    		   $("#storyPointOpen").text(stat.storyPoint.open);
+               $("#storyPointInProgress").text(stat.storyPoint.inProgress);
+               $("#storyPointResolved").text(stat.storyPoint.resolved);
+               
+               $("#failurePresentation").text(stat.failure.tier.presentation);
+               $("#failureApplication").text(stat.failure.tier.application);
+               $("#failureData").text(stat.failure.tier.data);
+               $("#failureStaging").text(stat.failure.env.staging);
+               $("#failureProduction").text(stat.failure.env.production);
+               
+               var assigneeElements = "";
+               for (x in assigneeStats) {
+            	   assigneeElements += getAssigneeTableRow(assigneeStats[x]);
+               }
+               
+               $("#assigneesBody").html(assigneeElements);
+               
+    		   $("#issuesBody").html(issueElements);
+    	   },
+    	   error: function(jqXHR, textStatus, errorThrown){
+    		   alert("error");
+    	   }
+       });
+       
+       function isDefined(str) {
+           if(typeof(str) != "undefined" && str != null) {
+               return true;
+           }
+            
+           return false;
+       }
+       
+       function compareIssue(a, b) {
+    	   
+    	   var aIssueType = getTypeSequence(a.fields.issuetype.name);
+    	   var bIssueType = getTypeSequence(b.fields.issuetype.name);
+    	   
+    	   if (aIssueType > bIssueType) return 1;
+           if (aIssueType < bIssueType) return -1;
+    	   
+           var aKey = "";
+    	   if (isDefined(a.fields.parent)) {
+    		   aKey = a.fields.parent.key + ":" + a.key;
+    	   } else {
+    		   aKey = a.key;
+    	   }
+    	   
+    	   var bKey = "";
+           if (isDefined(b.fields.parent)) {
+               bKey = b.fields.parent.key + ":" + b.key;
+           } else {
+               bKey = b.key;
+           }
+           
+           if (aKey > bKey) {
+        	   return 1;
+           } 
+           if (aKey < bKey) {
+        	   return -1;
+           }
+           
+           return 0;
+       }
+       
+       function getTypeSequence(type) {
+    	   if (type == "Story" || type == "Sub-task") {
+    		   return 0;
+    	   } else if (type == "Task") {
+               return 1;
+           } else if (type == "Improvement") {
+    		   return 2;
+    	   } else {
+    		   return 3;
+    	   }
+       }
+       
+       function getIssueTypeIconHtml(issueType) {
+    	   if (issueType == "Story") {
+               return "<i class=\"fa fa-book\"></i> ";
+           } else if (issueType == "Task") {
+        	   return "<i class=\"fa fa-file-text\"></i> ";
+           } else if (issueType == "Sub-task") {
+        	   return "&nbsp;&nbsp;&nbsp;&nbsp;<i class=\"fa fa-file-text-o\"></i> ";
+           } else if (issueType == "Improvement") {
+        	   return "<i class=\"fa fa-rocket\"></i> ";
+           } else if (issueType == "Bug") {
+        	   return "<i class=\"fa fa-bug\"></i> ";
+           }
+    	   return "";
+       }
+       
+       function statistic() {
+    	   return {
+               count: {
+                   total:0,sprint:0,open:0,inProgress:0,resolved:0,bug:0,operating:0,triage:0
+               },
+               storyPoint: {
+            	   total:0,open:0,inProgress:0,resolved:0
+               },
+               failure: {
+                   tier: {presentation:0,application:0,data:0},
+                   env: {staging:0,production:0}
+               },
+               time: {
+            	   sprintEstimated:0,sprintLogged:0,totalEstimated:0,totalLogged:0
+               },
+               addIssueCount: function(summary) {
+            	   var issueType = summary.type;
+            	   var issueStatus = summary.status;
+            	   var issueName = summary.name;
+            	   
+            	   this.count.total += 1;
+            	   
+            	   if (issueType == "Bug") {
+                       if (issueName.indexOf("[Triage]") === 0) {
+                           this.count.triage += 1;
+                       } else {
+                           this.count.bug += 1;
+                       }
+                   } else if (issueType == "Task") {
+                       if (issueName.indexOf("[Triage]") === 0) {
+                    	   this.count.triage += 1;
+                       } else if (issueName.indexOf("[운영]") === 0) {
+                           this.count.operating += 1;
+                       } else {
+                           this.count.sprint += 1;
+                           this.addSprintIssueCount(issueStatus);
+                       }
+                   } else {
+                       this.count.sprint += 1;
+                       this.addSprintIssueCount(issueStatus);
+                   }
+               },
+               addSprintIssueCount: function(issueStatus) {
+            	   if (issueStatus == "Open" || issueStatus == "Reopened"){
+                       this.count.open += 1;
+                   } else if (issueStatus == "In Progress") {
+                       this.count.inProgress += 1;
+                   } else if (issueStatus == "Resolved" || issueStatus == "Closed") {
+                       this.count.resolved += 1;
+                   }
+               },
+               addStoryPoint: function(issueSummary) {
+            	   var storyPoint = issueSummary.storyPoint;
+            	   var issueStatus = issueSummary.status;
+            	   
+            	   if (typeof(storyPoint) != "undefined" && storyPoint != null) {
+                       this.storyPoint.total += storyPoint;                     
+                       if (issueStatus == "Open" || issueStatus == "Reopened"){
+                           this.storyPoint.open += storyPoint;
+                       } else if (issueStatus == "In Progress") {
+                    	   this.storyPoint.inProgress += storyPoint;
+                       } else if (issueStatus == "Resolved" || issueStatus == "Closed") {
+                    	   this.storyPoint.resolved += storyPoint;
+                       }
+                   }
+               },
+               addTimeAttr: function(summary) {
+                   var issueType = summary.type;
+                   var issueStatus = summary.status;
+                   var issueName = summary.name;
+                   
+                   this.time.totalEstimated += summary.estimate;
+                   this.time.totalLogged += summary.logged;
+                   
+                   if (issueType == "Task" || issueType == "Sub-task") {
+                       if (issueName.indexOf("[Triage]") != 0 && issueName.indexOf("[운영]") != 0) {
+                    	   this.time.sprintEstimated += summary.estimate;
+                           this.time.sprintLogged += summary.logged;
+                       }
+                   }
+               },
+               addBugType: function(summary) {
+                   var issueType = summary.type;
+                   var issueStatus = summary.status;
+                   var issueName = summary.name;
+                   
+                   var issueLabels = summary.labels;
+                   
+                   if (issueLabels.indexOf("BugStaging") >= 0) {
+                       this.failure.env.staging += 1;
+                   }
+                   
+                   if (issueLabels.indexOf("BugProduction") >= 0) {
+                       this.failure.env.production += 1;
+                   }
+                   
+                   if (issueLabels.indexOf("BugPresentation") >= 0) {
+                       this.failure.tier.presentation += 1;
+                   }
+                   
+                   if (issueLabels.indexOf("BugApplication") >= 0) {
+                       this.failure.tier.application += 1;
+                   }
+                   
+                   if (issueLabels.indexOf("BugData") >= 0) {
+                       this.failure.tier.data += 1;
+                   }
+               }
+           }
+       }
+       
+       function roundNumber(number, digits) {
+           var multiple = Math.pow(10, digits);
+           var rndedNum = Math.round(number * multiple) / multiple;
+           return rndedNum;
+       }
+       
+       function issueSummary(issueKey, issueParentKey, issueUrl, issueName, issueType, issueStatus, issueStoryPoint, issueEstimate, issueLogged, issueAssignee, issueLabels) {
+           issueStoryPoint = issueStoryPoint == null ? 0 : issueStoryPoint;
+           issueEstimate = issueEstimate == null ? 0 : issueEstimate;
+           issueLogged = issueLogged == null ? 0 : issueLogged;
+           issueAssignee = issueAssignee == null ? "-" : issueAssignee.displayName;
+           
+    	   return {
+    		   key:issueKey,
+    		   parentKey:issueParentKey,
+    		   url:issueUrl,
+    		   name:issueName,
+    		   type:issueType,
+    		   status:issueStatus,
+    		   storyPoint:issueStoryPoint,
+    		   estimate:issueEstimate,
+    		   logged:issueLogged,
+    		   assignee:issueAssignee,
+    		   labels:issueLabels
+    	   }
+       }
+       
+       function getAssigneeTableRow(assigneeStat) {
+    	   
+    	   var assignee = assigneeStat.assignee;
+    	   var stat = assigneeStat.stat;
+    	   
+    	   console.log(assigneeStat);
+    	   
+           var retval = "";
+
+           retval += "<tr>";
+           retval += "<th>" + assignee + "</th>";
+           retval += "<th>" + stat.count.open + " (story:" + stat.storyPoint.open + ")</th>";
+           retval += "<th>" + stat.count.inProgress + " (story:" + stat.storyPoint.inProgress + ")</th>";
+           retval += "<th>" + stat.count.resolved + " (story:" + stat.storyPoint.resolved + ")</th>";
+           retval += "<th>" + stat.count.total + " (story:" + stat.storyPoint.total + ")</th>";
+           
+           retval += "<th>" + stat.time.sprintLogged/3600 + " / " + stat.time.sprintEstimated/3600 + "</th>";
+           retval += "<th>" + stat.time.totalLogged/3600 + " / " + stat.time.totalEstimated/3600 + "</th>";
+           
+           var totalFailure = stat.failure.env.staging + stat.failure.env.production;
+           retval += "<th>" + totalFailure + " (" + stat.failure.env.staging + " / " + stat.failure.env.production + ")</th>";
+           retval += "</tr>";
+           
+           return retval;
+       }
+       
+       function getIssuesTableRow(issue) {
+    	   var retval = "";
+
+    	   retval += "<tr id=\"" + issue.key + "\" data-parent-id=\"" + issue.parentKey + "\">";
+    	   retval += "<th>" + getIssueTypeIconHtml(issue.type) + "<a target=\"blank\" href=\"" + issue.url + "\">" + issue.key + "</a></th><th>" + issue.name + "</th>";
+           if (issue.status == "Open" || issue.status == "Reopened") {
+        	   retval += "<th>" + issue.assignee + "</th><th></th><th></th>";
+           } else if (issue.status == "In Progress") {
+        	   retval += "<th></th><th>" + issue.assignee + "</th><th></th>";
+           } else if (issue.status == "Resolved" || issue.status == "Closed") {
+        	   retval += "<th></th><th></th><th>" + issue.assignee + "</th>\n";
+           }
+           
+           retval += "<th>" + issue.storyPoint + "</th><th>" + roundNumber(issue.logged/3600, 2) + " / " + roundNumber(issue.estimate/3600,2) + "</th>";
+           retval += "<th>";
+           
+           var issueLabels = issue.labels;
+           if (issueLabels.indexOf("BugStaging") >= 0) {
+               retval += "<span class=\"label\">S</span> ";
+           }
+           if (issueLabels.indexOf("BugProduction") >= 0) {
+        	   retval += "<span class=\"label\">P</span> ";
+           }
+           if (issueLabels.indexOf("BugPresentation") >= 0) {
+        	   retval += "<span class=\"label label-info\">ui</span> ";
+           }
+           if (issueLabels.indexOf("BugApplication") >= 0) {
+        	   retval += "<span class=\"label label-info\">app</span> ";
+           }
+           if (issueLabels.indexOf("BugData") >= 0) {
+        	   retval += "<span class=\"label label-info\">data</span> ";
+           }
+           if (issueLabels.indexOf("FaultMigration") >= 0) {
+               retval += "<span class=\"label label-important\">F/M</span> ";
+           }
+           if (issueLabels.indexOf("NotaBug") >= 0) {
+               retval += "<span class=\"label label-info\">N/B</span> ";
+           }
+           if (issueLabels.indexOf("NoFunction") >= 0) {
+               retval += "<span class=\"label label-info\">N/F</span> ";
+           }
+           if (issueLabels.indexOf("FaultOperation") >= 0) {
+               retval += "<span class=\"label label-important\">F/O</span> ";
+           }
+           
+           retval += "</th>";
+           
+           return retval;
+       }
+  });
+});
+</script>
+</head>
+
+<body>
+
+<div class="container">
+    <div class="row">
+        <div class="span3">
+	        <div class="input-append">
+	            <input type="text" class="span2" id="sprintName" placeholder="Sprint Name"/>
+	            <button id="search" type="button" class="btn">Submit</button>
+	        </div>
+        </div>
+        <div class="span9">
+	        <div class="btn-group" data-toggle="buttons-checkbox">
+	            <button id="closeSummary" type="button" class="btn btn-primary">Summary</button>
+	            <button id="closeAssignees" type="button" class="btn btn-primary">Assignees</button>
+	            <button id="closeIssues" type="button" class="btn btn-primary">Issues</button>
+	        </div>
+	    </div>
+    </div>
+    <div id="block1" class="row">
+        <div class="span4">
+            <h3>Issue Count</h3>
+            <table class="table table-striped table-bordered table-condensed">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Value</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <th>Total</th>
+                        <th id="issueCountTotal" class="text-right"></th>
+                    </tr>
+                    <tr>
+                        <th>Sprint</th>
+                        <th id="issueCountSprint"></th>
+                    </tr>
+                    <tr>
+                        <th>- Open</th>
+                        <th id="issueCountOpen"></th>
+                    </tr>
+                    <tr>
+                        <th>- InProgress</th>
+                        <th id="issueCountInProgress"></th>
+                    </tr>
+                    <tr>
+                        <th>- Resolved</th>
+                        <th id="issueCountResolved"></th>
+                    </tr>
+                    <tr>
+                        <th>Bug</th>
+                        <th id="issueCountBug"></th>
+                    </tr>
+                    <tr>
+                        <th>Operating</th>
+                        <th id="issueCountOperating"></th>
+                    </tr>
+                    <tr>
+                        <th>Triage</th>
+                        <th id="issueCountTriage"></th>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="span4">    
+            <h3>Story Point</h3>
+            <table class="table table-striped table-bordered table-condensed">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Value</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <th>Total</th>
+                        <th id="storyPointTotal"></th>
+                    </tr>
+                    <tr>
+                        <th>Open</th>
+                        <th id="storyPointOpen"></th>
+                    </tr>
+                    <tr>
+                        <th>InProgress</th>
+                        <th id="storyPointInProgress"></th>
+                    </tr>
+                    <tr>
+                        <th>Resolved</th>
+                        <th id="storyPointResolved"></th>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="span4">   
+            <h3>Failure</h3>
+            <table class="table table-striped table-bordered table-condensed">
+                <thead>
+                    <tr>
+                        <th>Type</th>
+                        <th>Name</th>
+                        <th>Value</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <th>Tier</th>
+                        <th>Presentation</th>
+                        <th id="failurePresentation"></th>
+                    </tr>
+                    <tr>
+                        <th>Tier</th>
+                        <th>Application</th>
+                        <th id="failureApplication"></th>
+                    </tr>
+                    <tr>
+                        <th>Tier</th>
+                        <th>Database(Data)</th>
+                        <th id="failureData"></th>
+                    </tr>
+                    <tr>
+                        <th>Environment</th>
+                        <th>Staging</th>
+                        <th id="failureStaging"></th>
+                    </tr>
+                    <tr>
+                        <th>Environment</th>
+                        <th>Production</th>
+                        <th id="failureProduction"></th>
+                    </tr>
+                    
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div id="block2" class="row">
+        <div class="span12">
+            <h2>Assignees</h2>
+            <table class="table table-striped table-bordered table-condensed">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Open</th>
+                        <th>In Progress</th>
+                        <th>Resolved</th>
+                        <th>Total</th>
+                        <th>Sprint Time(Logged/Estimated)</th>
+                        <th>Total Time(Logged/Estimated)</th>
+                        <th>Failure(Staging/Production)</th>
+                    </tr>
+                </thead>
+                <tbody id="assigneesBody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div id="block3" class="row">
+        <div class="span2">
+            <h2>Issues</h2>
+        </div>
+        <div class="span10" style="margin-left:-30px; margin-top:15px">
+            <div class="input-append">
+                <input id="assigneeName" type="text" class="span2"  placeholder="Assignee"/>
+                <button id="assigneeFilter" type="button" class="btn">Apply</button>
+            </div>
+        </div>
+        <div class="span12">       
+            <table class="table table-striped table-bordered table-condensed">
+                <thead>
+                    <tr>
+                        <th>Issue#</th>
+                        <th>Title</th>
+                        <th>Open</th>
+                        <th>In Progress</th>
+                        <th>Resolved</th>
+                        <th>StoryPoint</th>
+                        <th>Time(Log/Est)</th>
+                        <th>Labels</th>
+                    </tr>
+                </thead>
+                <tbody id="issuesBody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+
+<ul>
+</ul>
+<br/>
+<p>
+</p>
+
+</body>
+</html>
