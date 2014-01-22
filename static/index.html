@@ -388,8 +388,8 @@ $(document).ready(function(){
            retval += "<th>" + stat.count.resolved + " (story:" + stat.storyPoint.resolved + ")</th>";
            retval += "<th>" + stat.count.total + " (story:" + stat.storyPoint.total + ")</th>";
            
-           retval += "<th>" + stat.time.sprintLogged/3600 + " / " + stat.time.sprintEstimated/3600 + "</th>";
-           retval += "<th>" + stat.time.totalLogged/3600 + " / " + stat.time.totalEstimated/3600 + "</th>";
+           retval += "<th>" + roundNumber(stat.time.sprintLogged/3600,2) + " / " + roundNumber(stat.time.sprintEstimated/3600,2) + "</th>";
+           retval += "<th>" + roundNumber(stat.time.totalLogged/3600,2) + " / " + roundNumber(stat.time.totalEstimated/3600,2) + "</th>";
            
            var totalFailure = stat.failure.env.staging + stat.failure.env.production;
            retval += "<th>" + totalFailure + " (" + stat.failure.env.staging + " / " + stat.failure.env.production + ")</th>";
@@ -615,6 +615,20 @@ $(document).ready(function(){
             <div class="input-append">
                 <input id="assigneeName" type="text" class="span2"  placeholder="Assignee"/>
                 <button id="assigneeFilter" type="button" class="btn">Apply</button>
+            </div>
+        </div>
+        <div class="span12">
+            <div class="well well-small">
+                <strong>Label Description&nbsp;&nbsp;&nbsp;&nbsp;</strong>
+	            <span class="label">S</span><small> Staging&nbsp;&nbsp;</small>
+	            <span class="label">P</span><small> Production&nbsp;&nbsp;</small>
+	            <span class="label label-info">ui</span><small> UI&nbsp;&nbsp;</small>
+	            <span class="label label-info">app</span><small> Application&nbsp;&nbsp;</small>
+	            <span class="label label-info">data</span><small> Data&nbsp;&nbsp;</small>
+	            <span class="label label-important">F/M</span><small> Migration Fault&nbsp;&nbsp;</small>
+	            <span class="label label-important">F/O</span><small> Fault Operation&nbsp;&nbsp;</small>
+	            <span class="label label-important">N/B</span><small> Not a Bug&nbsp;&nbsp;</small>
+	            <span class="label label-important">N/F</span><small> No Function&nbsp;&nbsp;</small>
             </div>
         </div>
         <div class="span12">       
