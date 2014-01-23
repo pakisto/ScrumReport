@@ -10,6 +10,7 @@ ScrumReport는 사내 Jira 시스템의 Agile 기능과 연동하여 스크럼 스프린트의 진행 상
 
 # 제약 사항
 ScrumReport에서 통계 데이터를 산출하기 위해서는 몇 가지 사용 제약 사항이 필요하다.
+
 1. 스토리는 스토리포인트만 입력하고 평가시간(Estimated Time), 실행시간(Logged Time)등의 정보를 기록하지 않는다.
 2. 스토리의 assignee는 별도로 두지 않거나 화면 기획자가 assinee로 지정할 수 있다.
 3. 스토리의 처리는 'Sub-task'를 생성해서 처리한다.
