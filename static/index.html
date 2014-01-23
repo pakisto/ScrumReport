@@ -431,14 +431,14 @@ $(document).ready(function(){
            if (issueLabels.indexOf("BugData") >= 0) {
         	   retval += "<span class=\"label label-info\">data</span> ";
            }
-           if (issueLabels.indexOf("FaultMigration") >= 0) {
-               retval += "<span class=\"label label-important\">F/M</span> ";
-           }
            if (issueLabels.indexOf("NotaBug") >= 0) {
-               retval += "<span class=\"label label-info\">N/B</span> ";
+               retval += "<span class=\"label label-important\">N/B</span> ";
            }
            if (issueLabels.indexOf("NoFunction") >= 0) {
-               retval += "<span class=\"label label-info\">N/F</span> ";
+               retval += "<span class=\"label label-important\">N/F</span> ";
+           }
+           if (issueLabels.indexOf("FaultMigration") >= 0) {
+               retval += "<span class=\"label label-important\">F/M</span> ";
            }
            if (issueLabels.indexOf("FaultOperation") >= 0) {
                retval += "<span class=\"label label-important\">F/O</span> ";
