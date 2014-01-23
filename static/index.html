@@ -73,7 +73,8 @@ $(document).ready(function(){
     	 
         $.ajax({
     	   type: 'GET',
-    	   url: domain + queryUri + 'Project="' + projectName + '" and Sprint="' + sprintName + '"&maxResults=300',
+    	   url: domain + queryUri + 'Sprint="' + sprintName + '"&maxResults=300',
+    	   //url: domain + queryUri + 'Project="' + projectName + '" and Sprint="' + sprintName + '"&maxResults=300',
     	   //url: 'http://jira.ktcloudware.com/rest/api/latest/search?jql=IssueKey="IPCPORTAL-29"&maxResults=300',
     	   //url: 'http://jira.ktcloudware.com/rest/greenhopper/1.0/xboard/plan/backlog/data.json?rapidViewId=37',
     	   beforeSend: function(xhr) {
