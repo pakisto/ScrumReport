@@ -12,6 +12,8 @@ body {
 table {
     font-size: 12px
 }
+.issue-table { table-layout: fixed; }
+.issue-table th, .issue-table td { overflow: hidden; }
 .text-right {text-alian: right !important;}
 </style>
 <link href="./css/bootstrap-responsive.css" rel="stylesheet">
@@ -36,31 +38,40 @@ $(document).ready(function(){
 		console.log(">" + assignName + "(" +  typeof(assignName) + ")");
 		
 		if ("" == assignName) {
+			console.log(">>");
 			$("#block3 tbody tr").show();
+			$("#block5 tbody tr").show();
+			$("#block6 tbody tr").show();
 			return;
 		}
-
-        $("#block3 tbody tr").each(function() {
-        	var c1 = $(this).children("th").eq(2).text();
-        	var c2 = $(this).children("th").eq(3).text();
-        	var c3 = $(this).children("th").eq(4).text();
-        	
-        	var name = "" + c1 + c2 + c3;
-        	
-        	console.log(">>" + name + "(" +  typeof(name) + ")");
-        	
-        	if (name == assignName) {
-        		$(this).show();
-        		var parentKey = $(this).attr("data-parent-id");
-        		var parentSelector = "#" + parentKey;
-        		console.log(">>>" + parentKey + "(" +  typeof(parentKey) + ")");
-        		if (parentKey != null) {
-        			$(parentSelector).show();
-        		}
-        	} else {
-        		$(this).hide();
-        	}
-        });
+		
+		filterIssues($("#block3 tbody tr"));
+		filterIssues($("#block5 tbody tr"));
+		filterIssues($("#block6 tbody tr"));
+        
+        function filterIssues(tr) {
+        	tr.each(function() {
+                var c1 = $(this).children("th").eq(2).text();
+                var c2 = $(this).children("th").eq(3).text();
+                var c3 = $(this).children("th").eq(4).text();
+                
+                var name = "" + c1 + c2 + c3;
+                
+                console.log(">>" + name + "(" +  typeof(name) + ")");
+                
+                if (name == assignName) {
+                    $(this).show();
+                    var parentKey = $(this).attr("data-parent-id");
+                    var parentSelector = "#" + parentKey;
+                    console.log(">>>" + parentKey + "(" +  typeof(parentKey) + ")");
+                    if (parentKey != null) {
+                        $(parentSelector).show();
+                    }
+                } else {
+                    $(this).hide();
+                }
+            });
+        }
     });
     $("#search").click(function(){
     	 
@@ -87,7 +98,9 @@ $(document).ready(function(){
     		   
     		   var stat = new statistic();
     		   var assigneeStats = {};
-    		   var issueElements = "";
+    		   var sprintIssues = "";
+    		   var bugIssues = "";
+    		   var triageIssues = "";
     		   
     		   for (var i = 0; i < issues.length; i++) {
     			   var issue =  issues[i].fields;
@@ -125,13 +138,13 @@ $(document).ready(function(){
     			   stat.addStoryPoint(summary);
     			   stat.addBugType(summary);
     			   
-    			   if (typeof(assigneeName) != "undefined" && assigneeName != null && assigneeName != "") {
-    				   if (assigneeName != summary.assignee) {
-    					   continue;
-    				   }
+    			   if (isBugIssue(summary)) {
+    				   bugIssues += getIssuesTableRow(summary); 
+    			   } else if (isTriageIssue(summary)) {
+    				   triageIssues += getIssuesTableRow(summary); 
+    			   } else {
+    				   sprintIssues += getIssuesTableRow(summary);    
     			   }
-    			   
-    			   issueElements += getIssuesTableRow(summary); 
     		   }
     		   
     		   $("#issueCountTotal").text(stat.count.total);
@@ -161,7 +174,11 @@ $(document).ready(function(){
                
                $("#assigneesBody").html(assigneeElements);
                
-    		   $("#issuesBody").html(issueElements);
+    		   $("#sprintIssuesBody").html(sprintIssues);
+    		   $("#bugIssuesBody").html(bugIssues);
+    		   $("#triageIssuesBody").html(triageIssues);
+    		   
+    		   $("#assigneeFilter").trigger("click");
     	   },
     	   error: function(jqXHR, textStatus, errorThrown){
     		   alert("error");
@@ -233,6 +250,27 @@ $(document).ready(function(){
         	   return "<i class=\"fa fa-bug\"></i> ";
            }
     	   return "";
+       }
+       
+       function isBugIssue(issue) {
+    	   if (issue.type == "Bug" && issue.name.indexOf("[Triage]") != 0) {
+    		   return true;
+    	   }
+    	   return false;
+       }
+       
+       function isTriageIssue(issue) {
+    	   if (issue.name.indexOf("[Triage]") == 0 || issue.name.indexOf("[¿î¿µ]") == 0) {
+    		   return true;
+    	   }
+    	   return false;
+       }
+       
+       function isSprintIssue(issue) {
+           if (!isBugIssue(issue) && !isTriageIssue(issue)) {
+               return true;
+           }
+           return false;
        }
        
        function statistic() {
@@ -608,7 +646,8 @@ $(document).ready(function(){
             </table>
         </div>
     </div>
-    <div id="block3" class="row">
+    
+    <div id="block4" class="row">
         <div class="span2">
             <h2>Issues</h2>
         </div>
@@ -621,36 +660,90 @@ $(document).ready(function(){
         <div class="span12">
             <div class="well well-small">
                 <strong>Label Description&nbsp;&nbsp;&nbsp;&nbsp;</strong>
-	            <span class="label">S</span><small> Staging&nbsp;&nbsp;</small>
-	            <span class="label">P</span><small> Production&nbsp;&nbsp;</small>
-	            <span class="label label-info">ui</span><small> UI&nbsp;&nbsp;</small>
-	            <span class="label label-info">app</span><small> Application&nbsp;&nbsp;</small>
-	            <span class="label label-info">data</span><small> Data&nbsp;&nbsp;</small>
-	            <span class="label label-important">F/M</span><small> Migration Fault&nbsp;&nbsp;</small>
-	            <span class="label label-important">F/O</span><small> Fault Operation&nbsp;&nbsp;</small>
-	            <span class="label label-important">N/B</span><small> Not a Bug&nbsp;&nbsp;</small>
-	            <span class="label label-important">N/F</span><small> No Function&nbsp;&nbsp;</small>
+                <span class="label">S</span><small> Staging&nbsp;&nbsp;</small>
+                <span class="label">P</span><small> Production&nbsp;&nbsp;</small>
+                <span class="label label-info">ui</span><small> UI&nbsp;&nbsp;</small>
+                <span class="label label-info">app</span><small> Application&nbsp;&nbsp;</small>
+                <span class="label label-info">data</span><small> Data&nbsp;&nbsp;</small>
+                <span class="label label-important">F/M</span><small> Migration Fault&nbsp;&nbsp;</small>
+                <span class="label label-important">F/O</span><small> Fault Operation&nbsp;&nbsp;</small>
+                <span class="label label-important">N/B</span><small> Not a Bug&nbsp;&nbsp;</small>
+                <span class="label label-important">N/F</span><small> No Function&nbsp;&nbsp;</small>
             </div>
         </div>
+    </div>
+    
+    <div id="block3" class="row">
+        <div class="span12">
+            <h5>Sprint Issues</h5>
+        </div>
         <div class="span12">       
-            <table class="table table-striped table-bordered table-condensed">
+            <table class="table table-striped table-bordered table-condensed issue-table">
                 <thead>
                     <tr>
-                        <th>Issue#</th>
-                        <th>Title</th>
-                        <th>Open</th>
-                        <th>In Progress</th>
-                        <th>Resolved</th>
-                        <th>StoryPoint</th>
-                        <th>Time(Log/Est)</th>
-                        <th>Labels</th>
+                        <th style="width: 15%">Issue#</th>
+                        <th style="width: 40%">Title</th>
+                        <th style="width: 6%">Open</th>
+                        <th style="width: 6%">InProgress</th>
+                        <th style="width: 6%">Resolved</th>
+                        <th style="width: 7%">StoryPoint</th>
+                        <th style="width: 7%">Time(Log/Est)</th>
+                        <th style="width: 13%">Labels</th>
                     </tr>
                 </thead>
-                <tbody id="issuesBody">
+                <tbody id="sprintIssuesBody">
                 </tbody>
             </table>
         </div>
     </div>
+
+    <div id="block5" class="row">
+        <div class="span12">
+            <h5>Bug Issues</h5>
+        </div>
+        <div class="span12">       
+            <table class="table table-striped table-bordered table-condensed issue-table">
+                <thead>
+                    <tr>
+                        <th style="width: 15%">Issue#</th>
+                        <th style="width: 40%">Title</th>
+                        <th style="width: 6%">Open</th>
+                        <th style="width: 6%">InProgress</th>
+                        <th style="width: 6%">Resolved</th>
+                        <th style="width: 7%">StoryPoint</th>
+                        <th style="width: 7%">Time(Log/Est)</th>
+                        <th style="width: 13%">Labels</th>
+                    </tr>
+                </thead>
+                <tbody id="bugIssuesBody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div id="block6" class="row">
+        <div class="span12">
+            <h5>Triage Issues</h5>
+        </div>
+        <div class="span12">       
+            <table class="table table-striped table-bordered table-condensed issue-table">
+                <thead>
+                    <tr>
+                        <th style="width: 15%">Issue#</th>
+                        <th style="width: 40%">Title</th>
+                        <th style="width: 6%">Open</th>
+                        <th style="width: 6%">InProgress</th>
+                        <th style="width: 6%">Resolved</th>
+                        <th style="width: 7%">StoryPoint</th>
+                        <th style="width: 7%">Time(Log/Est)</th>
+                        <th style="width: 13%">Labels</th>
+                    </tr>
+                </thead>
+                <tbody id="triageIssuesBody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
 </div>
 
 
