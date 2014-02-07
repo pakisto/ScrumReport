@@ -467,7 +467,22 @@ $(document).ready(function(){
         	   retval += "<th></th><th></th><th>" + issue.assignee + "</th>\n";
            }
            
-           retval += "<th>" + issue.storyPoint + "</th><th>" + roundNumber(issue.logged/3600, 2) + " / " + roundNumber(issue.estimate/3600,2) + "</th>";
+           // Story Point
+           var loggedTime = roundNumber(issue.logged/3600, 2);
+           var loggedStoryPoint = roundNumber(loggedTime/5, 1);
+           var estimatedTime = roundNumber(issue.estimate/3600,2);
+           if (issue.type == "Story" || (issue.type == "Task" && issue.name.indexOf("[Triage]") != 0 && issue.name.indexOf("[¿î¿µ]") != 0)) {
+       		   if (issue.storyPoint >= loggedStoryPoint) {
+                   retval += "<th>" + issue.storyPoint + " (" + loggedStoryPoint + ")</th>";
+               } else {
+                   retval += "<th class=\"text-warning\">" + issue.storyPoint + " (" + loggedStoryPoint + ")</th>";
+               }
+           } else {
+        	   retval += "<th>" + issue.storyPoint + "</th>";
+           }
+           
+           // Logged Time / Estimated Time
+           retval += "<th>" + loggedTime + " / " + estimatedTime + "</th>";
            retval += "<th>";
            
            var issueLabels = issue.labels;

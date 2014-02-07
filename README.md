@@ -28,3 +28,4 @@ ScrumReport에서 통계 데이터를 산출하기 위해서는 몇 가지 사용 제약 사항이 필요하�
   * NoFunction
   * FaultMigration
   * FaultOperation
+  
