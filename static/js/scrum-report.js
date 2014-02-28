@@ -34,7 +34,9 @@ function scrumReport(issues) {
 						issue.timeoriginalestimate,
 						issue.aggregatetimespent, 
 						issue.assignee, 
-						issue.labels);
+						issue.labels,
+						issue.created,
+						issue.updated);
 
 				if (isDefined(summary.assignee)) {
 					var assignStat = assigneeStats[summary.assignee];
@@ -171,6 +173,9 @@ function scrumReport(issues) {
 			
 			return iconHtml;
 		},
+		getLastUpdatedIconHtml : function(issueType) {
+			return "<i class=\"fa fa-spinner\" style=\"color:red\"></i> ";
+		},
 		getAssigneeTableRow : function(assigneeStat) {
 			var assignee = assigneeStat.assignee;
 			var stat = assigneeStat.stat;
@@ -219,12 +224,13 @@ function scrumReport(issues) {
 				rowColor += "info";
 			}
 
+			// Issue#
 			retval += "<tr id=\"" + issue.key + "\" data-parent-id=\""+ issue.parentKey + "\" data-issue-type=\""+ issue.type + "\" class=\"" + rowColor +"\">";
-			retval += "<th>" + this.getIssueTypeIconHtml(issue.type)
-					+ "<a target=\"blank\" href=\"" + issue.url + "\">"
-					+ issue.key + "</a></th>";
-			retval += "<th style=\"white-space:nowrap; text-overflow:ellipsis\">"
-					+ issue.name + "</th>";
+			retval += "<th>" + this.getIssueTypeIconHtml(issue.type) + "<a target=\"blank\" href=\"" + issue.url + "\">" + issue.key + "</a></th>";
+			
+			// Title#
+			retval += "<th style=\"white-space:nowrap; text-overflow:ellipsis\">" + (issue.isLastUpdated() ? this.getLastUpdatedIconHtml() : "") +  issue.name + "</th>";
+			
 			if (issue.status == "Open" || issue.status == "Reopened") {
 				retval += "<th>" + issue.assignee + "</th><th></th><th></th>";
 			} else if (issue.status == "In Progress") {
@@ -240,7 +246,7 @@ function scrumReport(issues) {
 			if (issue.type == "Story"
 					|| (issue.type == "Task"
 							&& issue.name.indexOf("[Triage]") != 0 && issue.name
-							.indexOf("[�]") != 0)) {
+							.indexOf("[�]") != 0)) {
 				if (issue.storyPoint >= loggedStoryPoint) {
 					retval += "<th>" + issue.storyPoint + " ("
 							+ loggedStoryPoint + ")</th>";

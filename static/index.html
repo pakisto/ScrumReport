@@ -4,6 +4,8 @@
 <!-- Le styles -->
 <link href="./css/bootstrap.css" rel="stylesheet">
 <link href="./css/font-awesome.css" rel="stylesheet">
+<link href="./css/bootstrap-responsive.css" rel="stylesheet">
+
 <style>
 body {
     padding-top: 20px;  
@@ -49,36 +51,81 @@ table {
 .issue-table th, .issue-table td { overflow: hidden; }
 .text-right {text-alian: right !important;}
 </style>
-<link href="./css/bootstrap-responsive.css" rel="stylesheet">
+
 
 <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
-<script src="./config.js"></script>
 <script src="./js/sample-issues.js"></script>
 <script src="./js/scrum-issuesummary.js"></script>
 <script src="./js/scrum-statistics.js"></script>
 <script src="./js/scrum-report.js"></script>
+<script src="./js/bootstrap.js"></script>
+
 <script>
+$(document).ready(function() {
+	
+	var sprint = localStorage.getItem("scrum-report.sprint");
+	var authorization = localStorage.getItem("scrum-report.authorization");
+	var asignee = localStorage.getItem("scrum-report.asignee");
+	var lasttab = localStorage.getItem("scrum-report.lasttab");
+	
+	if (typeof(sprint) != "undefined" && sprint != null) {
+		$("#sprintName").val(sprint);
+	}
+	
+	if (typeof(authorization) != "undefined" && authorization != null) {
+		$("#authorization").val(authorization);
+		$("#authorizationArea").hide();
+	} else {
+		$("#authorizationArea").show();
+	}
+	
+	if (typeof(asignee) != "undefined" && asignee != null) {
+		$("#assigneeName").val(asignee);
+	}
+	
+	if (typeof(lasttab) != "undefined" && lasttab != null) {
+		$("#" + lasttab).trigger("click");
+	}
 
-
-$(document).ready(function(){
 	
-	localStorage.setItem("test", "test");
 	
-	$("#sprintName").val(config.defaultSprintName);
 	
-	$("#closeSummary").click(function(){
+	
+	
+	
+	
+/* 	$("#closeSummary").click(function(){
 		$("#block1").toggle();
+		if ($("#closeSummary").hasClass("active")) {
+			$("#closeSummary").removeClass("active");
+		} else {
+			$("#closeSummary").addClass("active");
+		}
 	});
 	$("#closeAssignees").click(function(){
 		$("#block2").toggle();
+		if ($("#closeAssignees").hasClass("active")) {
+			$("#closeAssignees").removeClass("active");
+		} else {
+			$("#closeAssignees").addClass("active");
+		}
 	});
 	$("#closeIssues").click(function(){
 		$("#block3").toggle();
-		$("#block5").toggle();
-		$("#block6").toggle();
+		if ($("#closeIssues").hasClass("active")) {
+			$("#closeIssues").removeClass("active");
+		} else {
+			$("#closeIssues").addClass("active");
+		}
+	}); */
+	
+	$("#tab a").click(function(e) {
+		e.preventDefault();
+		$(this).tab("show");
 		
-		alert(localStorage.test);
+		localStorage.setItem("scrum-report.lasttab", $(this).attr("id"));
 	});
+	
 	$("#assigneeName").keyup(function(event){
 		if (event.keyCode == 13) {
 			$("#assigneeFilter").trigger("click");
@@ -87,10 +134,7 @@ $(document).ready(function(){
 	$("#assigneeFilter").click(function(){
 		var assignName = $("#assigneeName").val();
 		
-		console.log(">" + assignName + "(" +  typeof(assignName) + ")");
-		
 		if ("" == assignName) {
-			console.log(">>");
 			$("#block3 tbody tr").show();
 			$("#block5 tbody tr").show();
 			$("#block6 tbody tr").show();
@@ -109,13 +153,10 @@ $(document).ready(function(){
                 
                 var name = "" + c1 + c2 + c3;
                 
-                console.log(">>" + name + "(" +  typeof(name) + ")");
-                
                 if (name == assignName) {
                     $(this).show();
                     var parentKey = $(this).attr("data-parent-id");
                     var parentSelector = "#" + parentKey;
-                    console.log(">>>" + parentKey + "(" +  typeof(parentKey) + ")");
                     if (parentKey != null) {
                         $(parentSelector).show();
                     }
@@ -124,6 +165,8 @@ $(document).ready(function(){
                 }
             });
         }
+        
+        localStorage.setItem("scrum-report.asignee", assignName);
     });
 	$("#collapseSubTask").click(function(){
 		$("#block3 tbody tr[data-issue-type='Sub-task'] ").toggle();
@@ -139,8 +182,24 @@ $(document).ready(function(){
     	var queryUri = "/rest/api/latest/search?jql=";
     	var issueUri = "/browse";
     	var projectName = "IPC Management System Project";
-    	var sprintName = $("#sprintName").val();
+    	
+    	var sprint = $("#sprintName").val();
+    	var authorization = $("#authorization").val();
     	var assigneeName = $("#assigneeName").val();
+    	
+    	if (typeof(sprint) == "undefined" || sprint == null) {
+    		alert("Please, enter a sprint name.");
+    		return;
+    	} else {
+    		localStorage.setItem("scrum-report.sprint", sprint);
+    	}
+    	
+    	if (typeof(authorization) == "undefined" || authorization == null) {
+    		alert("Please, enter the authorization of the user.");
+    		return;
+    	} else {
+    		localStorage.setItem("scrum-report.authorization", authorization);
+    	}
     	
     	/* 
     	var issues = sampleIssues.issues;
@@ -150,12 +209,12 @@ $(document).ready(function(){
     	  
         $.ajax({
     	   type: 'GET',
-    	   url: domain + queryUri + 'Sprint="' + sprintName + '"&maxResults=300',
+    	   url: domain + queryUri + 'Sprint="' + sprint + '"&maxResults=300',
     	   //url: domain + queryUri + 'Project="' + projectName + '" and Sprint="' + sprintName + '"&maxResults=300',
     	   //url: 'http://jira.ktcloudware.com/rest/api/latest/search?jql=IssueKey="IPCPORTAL-29"&maxResults=300',
     	   //url: 'http://jira.ktcloudware.com/rest/greenhopper/1.0/xboard/plan/backlog/data.json?rapidViewId=37',
     	   beforeSend: function(xhr) {
-    		   xhr.setRequestHeader('Authorization', config.authorization);
+    		   xhr.setRequestHeader('Authorization', authorization);
     	   },
     	   success: function(data) {
     		   var issues = data.issues;
@@ -165,273 +224,290 @@ $(document).ready(function(){
     	   error: function(jqXHR, textStatus, errorThrown){
     		   alert("error");
     	   }
-       });
-  });
+    	});
+  	});
+    
+    $("#search").trigger("click");
 });
 </script>
 </head>
 
 <body>
 
-<div class="container">
-    <div class="row">
-        <div class="span3">
-	        <div class="input-append">
-	            <input id="sprintName" type="text" class="span2" id="sprintName" placeholder="Sprint Name"/>
-	            <button id="search" type="button" class="btn">Submit</button>
-	        </div>
-        </div>
-        <div class="span9">
-	        <div class="btn-group" data-toggle="buttons-checkbox">
-	            <button id="closeSummary" type="button" class="btn btn-primary">Summary</button>
-	            <button id="closeAssignees" type="button" class="btn btn-primary">Assignees</button>
-	            <button id="closeIssues" type="button" class="btn btn-primary">Issues</button>
-	        </div>
-	    </div>
-    </div>
-    <div id="block1" class="row">
-        <div class="span4">
-            <h3>Issue Count</h3>
-            <table class="table table-striped table-bordered table-condensed">
-                <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>Value</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <th>Total</th>
-                        <th id="issueCountTotal" class="text-right"></th>
-                    </tr>
-                    <tr>
-                        <th>Sprint</th>
-                        <th id="issueCountSprint"></th>
-                    </tr>
-                    <tr>
-                        <th>- Open</th>
-                        <th id="issueCountOpen"></th>
-                    </tr>
-                    <tr>
-                        <th>- InProgress</th>
-                        <th id="issueCountInProgress"></th>
-                    </tr>
-                    <tr>
-                        <th>- Resolved</th>
-                        <th id="issueCountResolved"></th>
-                    </tr>
-                    <tr>
-                        <th>Bug</th>
-                        <th id="issueCountBug"></th>
-                    </tr>
-                    <tr>
-                        <th>Operating</th>
-                        <th id="issueCountOperating"></th>
-                    </tr>
-                    <tr>
-                        <th>Triage</th>
-                        <th id="issueCountTriage"></th>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-        <div class="span4">    
-            <h3>Story Point</h3>
-            <table class="table table-striped table-bordered table-condensed">
-                <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>Value</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <th>Total</th>
-                        <th id="storyPointTotal"></th>
-                    </tr>
-                    <tr>
-                        <th>Open</th>
-                        <th id="storyPointOpen"></th>
-                    </tr>
-                    <tr>
-                        <th>InProgress</th>
-                        <th id="storyPointInProgress"></th>
-                    </tr>
-                    <tr>
-                        <th>Resolved</th>
-                        <th id="storyPointResolved"></th>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-        <div class="span4">   
-            <h3>Fault</h3>
-            <table class="table table-striped table-bordered table-condensed">
-                <thead>
-                    <tr>
-                        <th>Type</th>
-                        <th>Name</th>
-                        <th>Value</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <th>Tier</th>
-                        <th>Presentation</th>
-                        <th id="failurePresentation"></th>
-                    </tr>
-                    <tr>
-                        <th>Tier</th>
-                        <th>Application</th>
-                        <th id="failureApplication"></th>
-                    </tr>
-                    <tr>
-                        <th>Tier</th>
-                        <th>Database(Data)</th>
-                        <th id="failureData"></th>
-                    </tr>
-                    <tr>
-                        <th>Environment</th>
-                        <th>Staging</th>
-                        <th id="failureStaging"></th>
-                    </tr>
-                    <tr>
-                        <th>Environment</th>
-                        <th>Production</th>
-                        <th id="failureProduction"></th>
-                    </tr>
-                    
-                </tbody>
-            </table>
-        </div>
-    </div>
-    <div id="block2" class="row">
-        <div class="span12">
-            <h2>Assignees</h2>
-            <table class="table table-striped table-bordered table-condensed">
-                <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>Open</th>
-                        <th>In Progress</th>
-                        <th>Resolved</th>
-                        <th>Total</th>
-                        <th>Sprint Time(Logged/Estimated)</th>
-                        <th>Total Time(Logged/Estimated)</th>
-                        <th>Failure(Staging/Production)</th>
-                    </tr>
-                </thead>
-                <tbody id="assigneesBody">
-                </tbody>
-            </table>
-        </div>
-    </div>
-    
-    <div id="block4" class="row">
-        <div class="span2">
-            <h2>Issues</h2>
-        </div>
-        <div class="span10" style="margin-left:-30px; margin-top:15px">
-            <div class="input-append">
-                <input id="assigneeName" type="text" class="span2"  placeholder="Assignee"/>
-                <button id="assigneeFilter" type="button" class="btn">Apply</button>
-            </div>
-        </div>
-        <div class="span12">
-            <div class="well well-small">
-                <strong>Label Description&nbsp;&nbsp;&nbsp;&nbsp;</strong>
-                <span class="label">S</span><small> Staging&nbsp;&nbsp;</small>
-                <span class="label">P</span><small> Production&nbsp;&nbsp;</small>
-                <span class="label label-info">ui</span><small> UI&nbsp;&nbsp;</small>
-                <span class="label label-info">app</span><small> Application&nbsp;&nbsp;</small>
-                <span class="label label-info">data</span><small> Data&nbsp;&nbsp;</small>
-                <span class="label label-important">F/M</span><small> Migration Fault&nbsp;&nbsp;</small>
-                <span class="label label-important">F/O</span><small> Fault Operation&nbsp;&nbsp;</small>
-                <span class="label label-important">N/B</span><small> Not a Bug&nbsp;&nbsp;</small>
-                <span class="label label-important">N/F</span><small> No Function&nbsp;&nbsp;</small>
-            </div>
-        </div>
-    </div>
-    
-    <div id="block3" class="row">
-        <div class="span12">
-            <h5>Sprint Issues</h5>
-        </div>
-        <div class="span12">       
-            <table class="table table-bordered table-condensed issue-table">
-                <thead>
-                    <tr>
-                        <th style="width: 15%">Issue#<button id="collapseSubTask" class="btn btn-mini" style="float: right;"><i class="fa fa-minus-square-o"></i></button></th>
-                        <th style="width: 45%">Title</th>
-                        <th style="width: 6%">Open</th>
-                        <th style="width: 6%">InProgress</th>
-                        <th style="width: 6%">Resolved</th>
-                        <th style="width: 6%">StoryPoint</th>
-                        <th style="width: 6%">Time(Log/Est)</th>
-                        <th style="width: 10%">Labels</th>
-                    </tr>
-                </thead>
-                <tbody id="sprintIssuesBody">
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <div id="block5" class="row">
-        <div class="span12">
-            <h5>Bug Issues</h5>
-        </div>
-        <div class="span12">       
-            <table class="table table-bordered table-condensed issue-table">
-                <thead>
-                    <tr>
-                        <th style="width: 15%">Issue#</th>
-                        <th style="width: 45%">Title</th>
-                        <th style="width: 6%">Open</th>
-                        <th style="width: 6%">InProgress</th>
-                        <th style="width: 6%">Resolved</th>
-                        <th style="width: 6%">StoryPoint</th>
-                        <th style="width: 6%">Time(Log/Est)</th>
-                        <th style="width: 10%">Labels</th>
-                    </tr>
-                </thead>
-                <tbody id="bugIssuesBody">
-                </tbody>
-            </table>
-        </div>
-    </div>
-    <div id="block6" class="row">
-        <div class="span12">
-            <h5>Triage Issues</h5>
-        </div>
-        <div class="span12">       
-            <table class="table table-bordered table-condensed issue-table">
-                <thead>
-                    <tr>
-                        <th style="width: 15%">Issue#</th>
-                        <th style="width: 45%">Title</th>
-                        <th style="width: 6%">Open</th>
-                        <th style="width: 6%">InProgress</th>
-                        <th style="width: 6%">Resolved</th>
-                        <th style="width: 6%">StoryPoint</th>
-                        <th style="width: 6%">Time(Log/Est)</th>
-                        <th style="width: 10%">Labels</th>
-                    </tr>
-                </thead>
-                <tbody id="triageIssuesBody">
-                </tbody>
-            </table>
-        </div>
-    </div>
-    
-</div>
+	<div class="container">
+		<div class="row">
+			<div class="span3">
+				<div class="input-append">
+					<input id="sprintName" type="text" class="span2"
+						placeholder="Sprint Name" />
+					<button id="search" type="button" class="btn">Submit</button>
+				</div>
+			</div>
+			<div id="authorizationArea" class="span9">
+				<div class="input-prepend pull-right">
+					<span class="add-on">Auth</span> <input id="authorization"
+						type="text" class="span3"
+						placeholder="Basic xxxxxxxxxxxxxxxxxxxxxxxx" />
+				</div>
+			</div>
+		</div>
 
 
-<ul>
-</ul>
-<br/>
-<p>
-</p>
+		<ul class="nav nav-tabs" id="tab">
+			<li class="active"><a id="tabSummary" href="#tab1" data-toggle="tab">Summary</a></li>
+			<li><a id="tabIssues" href="#tab2" data-toggle="tab">Issues</a></li>
+		</ul>
+
+		<div class="tab-content">
+			<div class="tab-pane active" id="tab1">
+				<div id="block1" class="row">
+					<div class="span4">
+						<h3>Issue Count</h3>
+						<table class="table table-striped table-bordered table-condensed">
+							<thead>
+								<tr>
+									<th>Name</th>
+									<th>Value</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr>
+									<th>Total</th>
+									<th id="issueCountTotal" class="text-right"></th>
+								</tr>
+								<tr>
+									<th>Sprint</th>
+									<th id="issueCountSprint"></th>
+								</tr>
+								<tr>
+									<th>- Open</th>
+									<th id="issueCountOpen"></th>
+								</tr>
+								<tr>
+									<th>- InProgress</th>
+									<th id="issueCountInProgress"></th>
+								</tr>
+								<tr>
+									<th>- Resolved</th>
+									<th id="issueCountResolved"></th>
+								</tr>
+								<tr>
+									<th>Bug</th>
+									<th id="issueCountBug"></th>
+								</tr>
+								<tr>
+									<th>Operating</th>
+									<th id="issueCountOperating"></th>
+								</tr>
+								<tr>
+									<th>Triage</th>
+									<th id="issueCountTriage"></th>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+					<div class="span4">
+						<h3>Story Point</h3>
+						<table class="table table-striped table-bordered table-condensed">
+							<thead>
+								<tr>
+									<th>Name</th>
+									<th>Value</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr>
+									<th>Total</th>
+									<th id="storyPointTotal"></th>
+								</tr>
+								<tr>
+									<th>Open</th>
+									<th id="storyPointOpen"></th>
+								</tr>
+								<tr>
+									<th>InProgress</th>
+									<th id="storyPointInProgress"></th>
+								</tr>
+								<tr>
+									<th>Resolved</th>
+									<th id="storyPointResolved"></th>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+					<div class="span4">
+						<h3>Fault</h3>
+						<table class="table table-striped table-bordered table-condensed">
+							<thead>
+								<tr>
+									<th>Type</th>
+									<th>Name</th>
+									<th>Value</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr>
+									<th>Tier</th>
+									<th>Presentation</th>
+									<th id="failurePresentation"></th>
+								</tr>
+								<tr>
+									<th>Tier</th>
+									<th>Application</th>
+									<th id="failureApplication"></th>
+								</tr>
+								<tr>
+									<th>Tier</th>
+									<th>Database(Data)</th>
+									<th id="failureData"></th>
+								</tr>
+								<tr>
+									<th>Environment</th>
+									<th>Staging</th>
+									<th id="failureStaging"></th>
+								</tr>
+								<tr>
+									<th>Environment</th>
+									<th>Production</th>
+									<th id="failureProduction"></th>
+								</tr>
+
+							</tbody>
+						</table>
+					</div>
+				</div>
+				<div id="block2" class="row">
+					<div class="span12">
+						<h2>Assignees</h2>
+						<table class="table table-striped table-bordered table-condensed">
+							<thead>
+								<tr>
+									<th>Name</th>
+									<th>Open</th>
+									<th>In Progress</th>
+									<th>Resolved</th>
+									<th>Total</th>
+									<th>Sprint Time(Logged/Estimated)</th>
+									<th>Total Time(Logged/Estimated)</th>
+									<th>Failure(Staging/Production)</th>
+								</tr>
+							</thead>
+							<tbody id="assigneesBody">
+							</tbody>
+						</table>
+					</div>
+				</div>
+			</div>
+			
+			
+			
+			<div class="tab-pane" id="tab2">
+
+				<div id="block3" class="row">
+					<div class="span2">
+						<h2>Issues</h2>
+					</div>
+					<div class="span10" style="margin-left: -30px; margin-top: 15px">
+						<div class="input-append">
+							<input id="assigneeName" type="text" class="span2"
+								placeholder="Assignee" />
+							<button id="assigneeFilter" type="button" class="btn">Apply</button>
+						</div>
+					</div>
+					<div class="span12">
+						<div class="well well-small">
+							<strong>Label Description&nbsp;&nbsp;&nbsp;&nbsp;</strong> <span
+								class="label">S</span><small> Staging&nbsp;&nbsp;</small> <span
+								class="label">P</span><small> Production&nbsp;&nbsp;</small> <span
+								class="label label-info">ui</span><small> UI&nbsp;&nbsp;</small>
+							<span class="label label-info">app</span><small>
+								Application&nbsp;&nbsp;</small> <span class="label label-info">data</span><small>
+								Data&nbsp;&nbsp;</small> <span class="label label-important">F/M</span><small>
+								Migration Fault&nbsp;&nbsp;</small> <span class="label label-important">F/O</span><small>
+								Fault Operation&nbsp;&nbsp;</small> <span class="label label-important">N/B</span><small>
+								Not a Bug&nbsp;&nbsp;</small> <span class="label label-important">N/F</span><small>
+								No Function&nbsp;&nbsp;</small>
+						</div>
+					</div>
+
+					<div class="span12">
+						<h5>Sprint Issues</h5>
+					</div>
+
+
+					<div class="span12">
+						<table class="table table-bordered table-condensed issue-table">
+							<thead>
+								<tr>
+									<th style="width: 15%">Issue#
+										<button id="collapseSubTask" class="btn btn-mini"
+											style="float: right;">
+											<i class="fa fa-minus-square-o"></i>
+										</button>
+									</th>
+									<th style="width: 45%">Title</th>
+									<th style="width: 6%">Open</th>
+									<th style="width: 6%">InProgress</th>
+									<th style="width: 6%">Resolved</th>
+									<th style="width: 6%">StoryPoint</th>
+									<th style="width: 6%">Time(Log/Est)</th>
+									<th style="width: 10%">Labels</th>
+								</tr>
+							</thead>
+							<tbody id="sprintIssuesBody">
+							</tbody>
+						</table>
+					</div>
+
+					<div class="span12">
+						<h5>Bug Issues</h5>
+					</div>
+					<div class="span12">
+						<table class="table table-bordered table-condensed issue-table">
+							<thead>
+								<tr>
+									<th style="width: 15%">Issue#</th>
+									<th style="width: 45%">Title</th>
+									<th style="width: 6%">Open</th>
+									<th style="width: 6%">InProgress</th>
+									<th style="width: 6%">Resolved</th>
+									<th style="width: 6%">StoryPoint</th>
+									<th style="width: 6%">Time(Log/Est)</th>
+									<th style="width: 10%">Labels</th>
+								</tr>
+							</thead>
+							<tbody id="bugIssuesBody">
+							</tbody>
+						</table>
+					</div>
+					<div class="span12">
+						<h5>Triage Issues</h5>
+					</div>
+					<div class="span12">
+						<table class="table table-bordered table-condensed issue-table">
+							<thead>
+								<tr>
+									<th style="width: 15%">Issue#</th>
+									<th style="width: 45%">Title</th>
+									<th style="width: 6%">Open</th>
+									<th style="width: 6%">InProgress</th>
+									<th style="width: 6%">Resolved</th>
+									<th style="width: 6%">StoryPoint</th>
+									<th style="width: 6%">Time(Log/Est)</th>
+									<th style="width: 10%">Labels</th>
+								</tr>
+							</thead>
+							<tbody id="triageIssuesBody">
+							</tbody>
+						</table>
+					</div>
+
+				</div>
+
+			</div>
+		</div>
+
+	</div>
 
 </body>
 </html>
