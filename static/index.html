@@ -54,10 +54,9 @@ table {
 
 
 <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
-<script src="./js/sample-issues.js"></script>
-<script src="./js/scrum-issuesummary.js"></script>
-<script src="./js/scrum-statistics.js"></script>
-<script src="./js/scrum-report.js"></script>
+<script src="./js/scrum-issuesummary.js" charset='utf-8'></script>
+<script src="./js/scrum-statistics.js" charset='utf-8'></script>
+<script src="./js/scrum-report.js" charset='utf-8'></script>
 <script src="./js/bootstrap.js"></script>
 
 <script>
@@ -67,12 +66,13 @@ $(document).ready(function() {
 	var authorization = localStorage.getItem("scrum-report.authorization");
 	var asignee = localStorage.getItem("scrum-report.asignee");
 	var lasttab = localStorage.getItem("scrum-report.lasttab");
+	var collapseSubTask = localStorage.getItem("scrum-report.collapse.subtask") == 'true';
 	
 	if (typeof(sprint) != "undefined" && sprint != null) {
 		$("#sprintName").val(sprint);
 	}
 	
-	if (typeof(authorization) != "undefined" && authorization != null) {
+	if (typeof(authorization) != "undefined" && authorization != null && authorization != "") {
 		$("#authorization").val(authorization);
 		$("#authorizationArea").hide();
 	} else {
@@ -86,13 +86,11 @@ $(document).ready(function() {
 	if (typeof(lasttab) != "undefined" && lasttab != null) {
 		$("#" + lasttab).trigger("click");
 	}
+	
+	if (typeof(collapseSubTask) != "undefined" && collapseSubTask) {
+		$("#collapseSubTask").addClass("active");
+	}
 
-	
-	
-	
-	
-	
-	
 	
 /* 	$("#closeSummary").click(function(){
 		$("#block1").toggle();
@@ -119,8 +117,49 @@ $(document).ready(function() {
 		}
 	}); */
 	
+	
+	function filterIssues(trList) {
+		trList.each(function() {
+
+			var assignName = $("#assigneeName").val();
+    		var collapseSubTask = localStorage.getItem("scrum-report.collapse.subtask") == 'true';
+    		
+            var c1 = $(this).children("th").eq(2).text();
+            var c2 = $(this).children("th").eq(3).text();
+            var c3 = $(this).children("th").eq(4).text();
+            var name = "" + c1 + c2 + c3;
+            
+            var issueType = $(this).attr("data-issue-type");
+            var parentKey = $(this).attr("data-parent-id");
+            
+            if (assignName == "") {
+            	if (issueType == "Sub-task" && collapseSubTask == true) {
+            		$(this).hide();
+            	} else {
+            		$(this).show();
+            	}
+            	return;
+            }
+            
+            if (assignName == name) {
+            	if (issueType == "Sub-task" && collapseSubTask == true) {
+            		$(this).hide();
+            	} else {
+            		$(this).show();
+            	}              
+                var parentSelector = "#" + parentKey;
+                if (parentKey != null) {
+                    $(parentSelector).show();
+                }
+            } else {
+                $(this).hide();
+            }
+        });
+    }
+	
+	
 	$("#tab a").click(function(e) {
-		e.preventDefault();
+		// e.preventDefault();
 		$(this).tab("show");
 		
 		localStorage.setItem("scrum-report.lasttab", $(this).attr("id"));
@@ -133,43 +172,22 @@ $(document).ready(function() {
 	});
 	$("#assigneeFilter").click(function(){
 		var assignName = $("#assigneeName").val();
-		
-		if ("" == assignName) {
-			$("#block3 tbody tr").show();
-			$("#block5 tbody tr").show();
-			$("#block6 tbody tr").show();
-			return;
-		}
+		localStorage.setItem("scrum-report.asignee", assignName);
 		
 		filterIssues($("#block3 tbody tr"));
-		filterIssues($("#block5 tbody tr"));
-		filterIssues($("#block6 tbody tr"));
-        
-        function filterIssues(tr) {
-        	tr.each(function() {
-                var c1 = $(this).children("th").eq(2).text();
-                var c2 = $(this).children("th").eq(3).text();
-                var c3 = $(this).children("th").eq(4).text();
-                
-                var name = "" + c1 + c2 + c3;
-                
-                if (name == assignName) {
-                    $(this).show();
-                    var parentKey = $(this).attr("data-parent-id");
-                    var parentSelector = "#" + parentKey;
-                    if (parentKey != null) {
-                        $(parentSelector).show();
-                    }
-                } else {
-                    $(this).hide();
-                }
-            });
-        }
-        
-        localStorage.setItem("scrum-report.asignee", assignName);
     });
 	$("#collapseSubTask").click(function(){
-		$("#block3 tbody tr[data-issue-type='Sub-task'] ").toggle();
+		
+		var collapseSubTask = $("#collapseSubTask").hasClass("active");
+		if (collapseSubTask) {
+			$("#collapseSubTask").removeClass("active");
+		} else {
+			$("#collapseSubTask").addClass("active");
+		}
+		
+		localStorage.setItem("scrum-report.collapse.subtask", !collapseSubTask);
+		
+		filterIssues($("#block3 tbody tr"));
 	});
 	$("#sprintName").keyup(function(event){
         if (event.keyCode == 13) {
@@ -383,13 +401,13 @@ $(document).ready(function() {
 							<thead>
 								<tr>
 									<th>Name</th>
-									<th>Open</th>
-									<th>In Progress</th>
-									<th>Resolved</th>
-									<th>Total</th>
-									<th>Sprint Time(Logged/Estimated)</th>
-									<th>Total Time(Logged/Estimated)</th>
-									<th>Failure(Staging/Production)</th>
+									<th>Open(Story)</th>
+									<th>In Progress(Story)</th>
+									<th>Resolved(Story)</th>
+									<th>Total(Story)</th>
+									<th>Sprint Time(Log/Est)</th>
+									<th>Total Time(Log/Est)</th>
+									<th>Failure(Stag/Prod)</th>
 								</tr>
 							</thead>
 							<tbody id="assigneesBody">

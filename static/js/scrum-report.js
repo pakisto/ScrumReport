@@ -56,6 +56,7 @@ function scrumReport(issues) {
 
 				stat.addIssueCount(summary);
 				stat.addStoryPoint(summary);
+				stat.addTimeAttr(summary);
 				stat.addBugType(summary);
 
 				if (summary.isBugIssue()) {
@@ -68,29 +69,13 @@ function scrumReport(issues) {
 			}
 
 			$("#issueCountTotal").text(stat.count.total);
-			$("#issueCountSprint").text(
-					stat.count.sprint
-							+ "("
-							+ (stat.count.sprint / stat.count.total * 100)
-									.toFixed(2) + "%)");
+			$("#issueCountSprint").text(stat.count.sprint+ "(" + (stat.count.sprint / stat.count.total * 100).toFixed(2) + "%)");
 			$("#issueCountOpen").text(stat.count.open);
 			$("#issueCountInProgress").text(stat.count.inProgress);
 			$("#issueCountResolved").text(stat.count.resolved);
-			$("#issueCountBug").text(
-					stat.count.bug
-							+ "("
-							+ (stat.count.bug / stat.count.total * 100)
-									.toFixed(2) + "%)");
-			$("#issueCountOperating").text(
-					stat.count.operating
-							+ "("
-							+ (stat.count.operating / stat.count.total * 100)
-									.toFixed(2) + "%)");
-			$("#issueCountTriage").text(
-					stat.count.triage
-							+ "("
-							+ (stat.count.triage / stat.count.total * 100)
-									.toFixed(2) + "%)");
+			$("#issueCountBug").text(stat.count.bug+ "("+ (stat.count.bug / stat.count.total * 100).toFixed(2) + "%)");
+			$("#issueCountOperating").text(stat.count.operating+ "(" + (stat.count.operating / stat.count.total * 100).toFixed(2) + "%)");
+			$("#issueCountTriage").text(stat.count.triage+ "(" + (stat.count.triage / stat.count.total * 100).toFixed(2) + "%)");
 
 			$("#storyPointTotal").text(stat.storyPoint.total);
 			$("#storyPointOpen").text(stat.storyPoint.open);
@@ -107,8 +92,11 @@ function scrumReport(issues) {
 			for (x in assigneeStats) {
 				assigneeElements += this.getAssigneeTableRow(assigneeStats[x]);
 			}
+			assigneeElements += this.getAssigneeTableRow({"assignee":"Total", "stat":stat});
+			
 
 			$("#assigneesBody").html(assigneeElements);
+			$("#assigneesBody tr:last").css({ backgroundColor: "yellow", fontWeight: "bolder" });
 			
 			$("#sprintIssuesBody").html(sprintIssues);
 			$("#bugIssuesBody").html(bugIssues);
@@ -180,32 +168,31 @@ function scrumReport(issues) {
 			var assignee = assigneeStat.assignee;
 			var stat = assigneeStat.stat;
 
-			console.log(assigneeStat);
-
 			var retval = "";
 
 			retval += "<tr>";
 			retval += "<th>" + assignee + "</th>";
-			retval += "<th>" + stat.count.open + " (story:"
-					+ stat.storyPoint.open + ")</th>";
-			retval += "<th>" + stat.count.inProgress + " (story:"
-					+ stat.storyPoint.inProgress + ")</th>";
-			retval += "<th>" + stat.count.resolved + " (story:"
-					+ stat.storyPoint.resolved + ")</th>";
-			retval += "<th>" + stat.count.total + " (story:"
-					+ stat.storyPoint.total + ")</th>";
+			retval += "<th>" + stat.count.open + " (" + stat.storyPoint.open + ")</th>";
+			retval += "<th>" + stat.count.inProgress + " (" + stat.storyPoint.inProgress + ")</th>";
+			retval += "<th>" + stat.count.resolved + " (" + stat.storyPoint.resolved + ")</th>";
+			retval += "<th>" + stat.count.total + " (" + stat.storyPoint.total + ")</th>";
 
-			retval += "<th>" + roundNumber(stat.time.sprintLogged / 3600, 2)
-					+ " / " + roundNumber(stat.time.sprintEstimated / 3600, 2)
-					+ "</th>";
-			retval += "<th>" + roundNumber(stat.time.totalLogged / 3600, 2)
-					+ " / " + roundNumber(stat.time.totalEstimated / 3600, 2)
-					+ "</th>";
+			var sprintLogTime = roundNumber(stat.time.sprintLogged / 3600, 2); 
+			var sprintLog = parseInt(sprintLogTime / 5) + "d " + parseInt(sprintLogTime % 5) + "h";
+			var sprintEstTime = roundNumber(stat.time.sprintEstimated / 3600, 2); 
+			var sprintEst = parseInt(sprintEstTime / 5) + "d " + parseInt(sprintEstTime % 5) + "h"; 
+			
+			retval += "<th>L: <span style='color:red'>" + sprintLog + "</span>&nbsp;&nbsp;&nbsp;E: <span style='color:red'>" + sprintEst + "</span></th>";
+			
+			var totalLogTime = roundNumber(stat.time.totalLogged / 3600, 2);
+			var totalLog = parseInt(totalLogTime / 5) + "d " + parseInt(totalLogTime % 5) + "h";
+			var totalEstTime = roundNumber(stat.time.totalEstimated / 3600, 2);
+			var totalEst = parseInt(totalEstTime/5) + "d " + parseInt(totalEstTime % 5) + "h";
+			
+			retval += "<th>L: <span style='color:red'>" + totalLog + "</span>&nbsp;&nbsp;&nbsp;E: <span style='color:red'>" + totalEst + "</span></th>";
 
-			var totalFailure = stat.failure.env.staging
-					+ stat.failure.env.production;
-			retval += "<th>" + totalFailure + " (" + stat.failure.env.staging
-					+ " / " + stat.failure.env.production + ")</th>";
+			var totalFailure = stat.failure.env.staging + stat.failure.env.production;
+			retval += "<th>" + totalFailure + " (" + stat.failure.env.staging + " / " + stat.failure.env.production + ")</th>";
 			retval += "</tr>";
 
 			return retval;
@@ -243,16 +230,11 @@ function scrumReport(issues) {
 			var loggedTime = roundNumber(issue.logged / 3600, 2);
 			var loggedStoryPoint = roundNumber(loggedTime / 5, 1);
 			var estimatedTime = roundNumber(issue.estimate / 3600, 2);
-			if (issue.type == "Story"
-					|| (issue.type == "Task"
-							&& issue.name.indexOf("[Triage]") != 0 && issue.name
-							.indexOf("[�]") != 0)) {
+			if (issue.type == "Story" || (issue.type == "Task" && issue.name.indexOf("[Triage]") != 0 && issue.name.indexOf("[운영]") != 0)) {
 				if (issue.storyPoint >= loggedStoryPoint) {
-					retval += "<th>" + issue.storyPoint + " ("
-							+ loggedStoryPoint + ")</th>";
+					retval += "<th>" + issue.storyPoint + " (" + loggedStoryPoint + ")</th>";
 				} else {
-					retval += "<th class=\"text-warning\">" + issue.storyPoint
-							+ " (" + loggedStoryPoint + ")</th>";
+					retval += "<th class=\"text-warning\">" + issue.storyPoint + " (" + loggedStoryPoint + ")</th>";
 				}
 			} else {
 				retval += "<th>" + issue.storyPoint + "</th>";

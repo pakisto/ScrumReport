@@ -40,9 +40,7 @@ function issueSummary(issueKey, issueParentKey, issueUrl, issueName, issueType, 
 		},
 		isLastUpdated: function() {
 			var yesterday = (function(){this.setDate(this.getDate()-1); this.setHours(0); this.setMinutes(0); this.setSeconds(0); this.setMilliseconds(0); return this}).call(new Date());
-			console.log(yesterday.toString());
 			var updateday = new Date(Date.parse(this.updated));
-			console.log(updateday.toString());
 			
 			return +yesterday < +updateday;
 		}
